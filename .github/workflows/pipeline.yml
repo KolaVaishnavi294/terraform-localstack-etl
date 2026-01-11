@@ -1,0 +1,54 @@
+name: Data Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    services:
+      localstack:
+        image: localstack/localstack
+        ports:
+          - 4566:4566
+
+    env:
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: etl-bucket
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init & Apply
+      run: |
+        cd terraform
+        terraform init
+        terraform apply -auto-approve
+
+    - name: Upload CSV to S3
+      run: |
+        pip install awscli
+        aws --endpoint-url=http://localhost:4566 s3 mb s3://etl-bucket
+        aws --endpoint-url=http://localhost:4566 s3 cp sample_data.csv s3://etl-bucket/raw/sample_data.csv
+
+    - name: Build Docker
+      run: docker build -t etl ./etl
+
+    - name: Run ETL
+      run: |
+        docker run --network host \
+        -e AWS_ENDPOINT_URL=http://localhost:4566 \
+        -e S3_BUCKET=etl-bucket \
+        etl
+
+    - name: Verify Output
+      run: |
+        aws --endpoint-url=http://localhost:4566 s3 ls s3://etl-bucket/processed/
