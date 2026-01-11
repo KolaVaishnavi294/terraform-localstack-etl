@@ -6,6 +6,4 @@ provider "aws" {
   endpoints {
     s3 = "http://localhost:4566"
   }
-
-  s3_force_path_style = true
 }
