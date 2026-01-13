@@ -34,10 +34,10 @@ jobs:
         terraform init
         terraform apply -auto-approve
 
-    - name: Upload CSV to S3
+    - name: Create bucket and upload CSV
       run: |
         pip install awscli
-        aws --endpoint-url=http://localhost:4566 s3 mb s3://etl-bucket
+        aws --endpoint-url=http://localhost:4566 s3 mb s3://etl-bucket || true
         aws --endpoint-url=http://localhost:4566 s3 cp sample_data.csv s3://etl-bucket/raw/sample_data.csv
 
     - name: Build Docker
